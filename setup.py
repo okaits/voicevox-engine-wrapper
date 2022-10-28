@@ -4,7 +4,7 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as file:
     readme = file.read()
 setuptools.setup(
-    name="voicevox",
+    name="voicevox.py",
     version="0.0.1",
     install_requires=[
         "pygame"
