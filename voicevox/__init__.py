@@ -37,8 +37,12 @@ class Server():
 
     def get_speakerid_list(self) -> dict:
         """ Get speaker id list """
-        with urllib.request.urlopen(f"http://{self.server}/speakers") as speakers:
-            speakerid_list = json.load(speakers)
+        try:
+            with urllib.request.urlopen(f"http://{self.server}/speakers") as speakers:
+                speakerid_list = json.load(speakers)
+        except urllib.error.URLError as exc:
+            raise ServerError("Something went wrong while connecting to the server."
+                "Please check your server, then please retry.") from exc
         speakers = dict()
         for speaker in speakerid_list:
             for style in speaker['styles']:
@@ -65,8 +69,11 @@ class Voice():
 
     def save(self, output) -> None:
         """ Save self.data to file """
-        with open(output, "wb") as file:
-            file.write(self.data)
+        try:
+            with open(output, "wb") as file:
+                file.write(self.data)
+        except FileNotFoundError as exc:
+            raise FileError("No such file or directory.") from exc
 
     def play(self) -> None:
         """ Save self.data to tempfile, then play it """
@@ -99,10 +106,9 @@ class Request():
         try:
             with urllib.request.urlopen(req) as response:
                 query = json.load(response)
-        except urllib.error.URLError:
-            print("Error: Something went wrong while connecting to the server."
-                        "Please check your server, then please retry.")
-            return urllib.error.URLError
+        except urllib.error.URLError as exc:
+            raise ServerError("Something went wrong while connecting to the server."
+                        "Please check your server, then please retry.") from exc
 
         return Query(query, self, self.client)
 
@@ -113,8 +119,12 @@ class Request():
         url = f"http://{str(self.client.server)}/synthesis?speaker={str(self.speaker)}"
         req = urllib.request.Request(url, data=data, method="POST")
         req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req) as response:
-            data = response.read()
+        try:
+            with urllib.request.urlopen(req) as response:
+                data = response.read()
+        except urllib.error.URLError as exc:
+            raise ServerError("Something went wrong while connecting to the server."
+                "Please check your server, then please retry.") from exc
         return Voice(data, self)
 
 
@@ -129,3 +139,14 @@ class Client():
     def request(self, text: str, speaker: int = 3):
         """ Set self.text """
         return Request(self, text, speaker)
+
+class ServerError(Exception):
+    """ Server Error """
+
+class FileError(Exception):
+    """ File Error """
+
+def play(text, speaker):
+    """ Example program """
+    request = Client("localhost:50021").request(text, int(speaker))
+    request.request_voice(request.request_query()).play()
